@@ -51,3 +51,44 @@ def test_distinct_full_hash(tmp_path):
     prefix=b'x'*70000
     (tmp_path/'a').write_bytes(prefix+b'a'); (tmp_path/'b').write_bytes(prefix+b'b')
     assert scan_duplicates(tmp_path).groups == ()
+
+
+def test_metadata_timestamp_settling_retries_once(tmp_path, monkeypatch):
+    """Transient mtime shift with unchanged size/inode can be safely rehashed."""
+    from techdeal_duplicate_guardian_core import scanner
+    (tmp_path / 'a').write_bytes(b'repeated')
+    (tmp_path / 'b').write_bytes(b'repeated')
+    original = scanner._read_digest
+    triggered = []
+
+    def metadata_shift(path, expected, max_bytes=None):
+        if path.name == 'b' and max_bytes is not None and not triggered:
+            triggered.append(True)
+            st = path.stat()
+            os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000_000))
+        return original(path, expected, max_bytes)
+
+    monkeypatch.setattr(scanner, '_read_digest', metadata_shift)
+    result = scan_duplicates(tmp_path)
+    assert len(result.groups) == 1
+    assert result.skipped == ()
+
+
+def test_changed_size_is_not_retried_as_duplicate(tmp_path, monkeypatch):
+    """Substantial mutation/replacement remains excluded from duplicate reports."""
+    from techdeal_duplicate_guardian_core import scanner
+    (tmp_path / 'a').write_bytes(b'same')
+    (tmp_path / 'b').write_bytes(b'same')
+    original = scanner._read_digest
+    triggered = []
+
+    def mutate(path, expected, max_bytes=None):
+        if path.name == 'b' and max_bytes is not None and not triggered:
+            triggered.append(True)
+            path.write_bytes(b'changed-to-a-longer-file')
+        return original(path, expected, max_bytes)
+
+    monkeypatch.setattr(scanner, '_read_digest', mutate)
+    result = scan_duplicates(tmp_path)
+    assert result.groups == ()
+    assert any('b:' in name or 'b\\:' in name or 'b: file changed' in name for name in result.skipped)

@@ -63,6 +63,23 @@ def _read_digest(path: Path, expected, max_bytes: int | None = None) -> str:
         raise ValueError("file changed after reading")
     return h.hexdigest()
 
+def _stable_digest(path: Path, expected: tuple, max_bytes: int | None = None) -> tuple[str, tuple]:
+    """Retry once when a file's timestamps settle without changing size/inode.
+
+    Never accept a replaced file or a size change. Every successful hash still
+    performs the strict before/open/after metadata checks in _read_digest.
+    """
+    try:
+        return _read_digest(path, expected, max_bytes), expected
+    except ValueError as exc:
+        if not str(exc).startswith("file changed"):
+            raise
+        refreshed = _identity(path)
+        if refreshed[:3] != expected[:3]:
+            raise
+        return _read_digest(path, refreshed, max_bytes), refreshed
+
+
 def scan_duplicates(root: str | Path, *, max_files: int = 100_000, sample_bytes: int = 65536) -> ScanReport:
     """Discover exact duplicate candidates via size, sampled SHA-256 and full SHA-256.
 
@@ -108,7 +125,8 @@ def scan_duplicates(root: str | Path, *, max_files: int = 100_000, sample_bytes:
         by_sample = defaultdict(list)
         for path, expected in entries:
             try:
-                by_sample[_read_digest(path, expected, sample_bytes)].append((path, expected))
+                digest, stable_info = _stable_digest(path, expected, sample_bytes)
+                by_sample[digest].append((path, stable_info))
             except (OSError, ValueError) as exc:
                 skipped.append(f"{path}: {exc}")
         for sampled in by_sample.values():
@@ -117,7 +135,8 @@ def scan_duplicates(root: str | Path, *, max_files: int = 100_000, sample_bytes:
             by_full = defaultdict(list)
             for path, expected in sampled:
                 try:
-                    by_full[_read_digest(path, expected)].append((path, expected))
+                    digest, stable_info = _stable_digest(path, expected)
+                    by_full[digest].append((path, stable_info))
                 except (OSError, ValueError) as exc:
                     skipped.append(f"{path}: {exc}")
             for digest, matching in by_full.items():
