@@ -1,6 +1,6 @@
 # TechDeal Duplicate Guardian Core
 
-[![CI](https://img.shields.io/badge/tests-pytest-blue)](#development)
+[![CI](https://github.com/technodeal2024-debug/techdeal-duplicate-guardian-core/actions/workflows/tests.yml/badge.svg)](https://github.com/technodeal2024-debug/techdeal-duplicate-guardian-core/actions/workflows/tests.yml)
 
 An independently implemented, **read-only**, local duplicate-file discovery library and CLI. Built for open-source collaboration; **not a source release of the commercial TechDeal Duplicate Guardian Android/Windows apps**.
 
@@ -25,6 +25,11 @@ py -m pip install .
 td-duplicates "C:\\Users\\YourName\\Documents"
 ```
 
+## Safe demonstration
+Run the included example against a small test folder that you own:
+    python examples/basic_usage.py /path/to/test-folder
+The example is read-only. Do not publish unredacted scan reports: output can reveal local file paths.
+
 ## Python API
 ```python
 from techdeal_duplicate_guardian_core import scan_duplicates
@@ -41,6 +46,11 @@ for group in report.groups:
 - Large trees may require time; default maximum is 100,000 discovered files.
 - Python package and CLI only in v0.1.0. The cross-platform/Android SDK is a future roadmap item, not currently implemented.
 
+## Public project status
+- This repository is public and newly established; no community adoption is claimed yet.
+- No tagged release or PyPI distribution is claimed. Check the GitHub Releases page for updates.
+- Please report genuine bugs or contribute reproducible tests. See CHANGELOG.md, docs/ROADMAP.md, and MAINTAINERS.md.
+
 ## Development
 ```sh
 python -m pip install -e '.[test]'
@@ -49,6 +59,6 @@ python -m pytest -q
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## License and trademark
-Code: MIT License, subject to a rights-holder authorization check before first public publication. TechDeal AI names and trademarks are not granted by the code license.
+Code is distributed under the MIT License in LICENSE. The code license does not grant rights to TechDeal AI trademarks or any private commercial product.
 
 **Independent OSS project, not an OpenAI-endorsed project.** Open-sourcing a project does not guarantee eligibility for any Codex/OpenAI grant.

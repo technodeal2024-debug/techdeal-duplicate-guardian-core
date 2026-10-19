@@ -1,10 +1,17 @@
 # Contributing
 
-We welcome reproducible bug reports, tests, documentation and safe improvements.
+Contributions that improve the read-only duplicate scanner are welcome: bug reports, test cases, documentation and carefully reviewed code.
 
-1. Open an issue explaining the change. Do not upload private user scan reports or real personal files.
-2. Make a focused branch and add tests.
-3. Run `python -m pytest -q` and verify no destructive operations were added.
-4. Open a PR. Maintainers review changes for security, privacy and compatibility.
+## Safe reporting
+- Search existing issues before opening a new report.
+- Provide your OS, Python version, current commit, expected vs actual result and a small **synthetic** test dataset.
+- Do not post private paths, unredacted scan reports, passwords, signing material or personal documents.
+- Security issues should be disclosed privately following SECURITY.md.
 
-No deletion/move functionality should be added without explicit separate scope and safety review. Contributors must have rights to submit their code under MIT and must not copy code from proprietary applications.
+## Development
+1. Run: python -m pip install -e '.[test]'
+2. Run: python -m pytest -q
+3. Try a small local test folder with examples/basic_usage.py.
+4. Open a focused pull request explaining safety impact and any platform-specific testing.
+
+Do not add deletion, file moves, uploads or telemetry. Do not copy proprietary Android/Windows app code. You must have rights to submit contributions under MIT.
