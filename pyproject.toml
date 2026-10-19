@@ -9,7 +9,7 @@ description = "Safe, read-only duplicate file detection toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [{name = "TechDeal AI contributors"}]
+authors = [{name = "Tilak Verma"}]
 keywords = ["duplicates", "filesystem", "hashing", "privacy", "read-only"]
 
 [project.optional-dependencies]
