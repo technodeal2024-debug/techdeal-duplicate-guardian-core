@@ -92,3 +92,18 @@ def test_changed_size_is_not_retried_as_duplicate(tmp_path, monkeypatch):
     result = scan_duplicates(tmp_path)
     assert result.groups == ()
     assert any('b:' in name or 'b\\:' in name or 'b: file changed' in name for name in result.skipped)
+
+
+def test_descriptor_creation_vs_change_time_windows_compatibility():
+    """Windows path-stat creation time can differ from fstat change time."""
+    from types import SimpleNamespace
+    from techdeal_duplicate_guardian_core.scanner import _opened_file_matches
+    expected = (7, 12, 1024, 123456789, 55555)
+    opened = SimpleNamespace(st_dev=7, st_ino=12, st_size=1024, st_mtime_ns=123456789, st_ctime_ns=99999)
+    assert _opened_file_matches(opened, expected, is_windows=True)
+    assert not _opened_file_matches(opened, expected, is_windows=False)
+    opened.st_size = 1023
+    assert not _opened_file_matches(opened, expected, is_windows=True)
+    opened.st_size = 1024
+    opened.st_ino = 99
+    assert not _opened_file_matches(opened, expected, is_windows=True)

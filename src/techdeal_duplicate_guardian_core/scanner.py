@@ -32,6 +32,20 @@ def _identity(path: Path):
         raise ValueError("not a regular non-symlink file")
     return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
+def _opened_file_matches(st, expected, *, is_windows: bool | None = None) -> bool:
+    """Compare descriptor metadata with path metadata conservatively.
+
+    On Windows, Python os.stat/lstat may return creation time as st_ctime,
+    whereas os.fstat may return metadata change time for the same file.
+    Check stable file identity, size and content mtime on Windows, and
+    independently verify path metadata before and after reading.
+    """
+    actual = (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+    if is_windows is None:
+        is_windows = os.name == "nt"
+    return actual[:4] == expected[:4] if is_windows else actual == expected
+
+
 def _read_digest(path: Path, expected, max_bytes: int | None = None) -> str:
     if _identity(path) != expected:
         raise ValueError("file changed before reading")
@@ -40,7 +54,7 @@ def _read_digest(path: Path, expected, max_bytes: int | None = None) -> str:
     fd = os.open(path, flags)
     try:
         st = os.fstat(fd)
-        if not stat.S_ISREG(st.st_mode) or (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns) != expected:
+        if not stat.S_ISREG(st.st_mode) or not _opened_file_matches(st, expected):
             raise ValueError("file changed during opening")
         h = hashlib.sha256()
         remaining = max_bytes
@@ -55,7 +69,7 @@ def _read_digest(path: Path, expected, max_bytes: int | None = None) -> str:
             if remaining is not None:
                 remaining -= len(block)
         after = os.fstat(fd)
-        if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns) != expected:
+        if not _opened_file_matches(after, expected):
             raise ValueError("file changed during reading")
     finally:
         os.close(fd)
